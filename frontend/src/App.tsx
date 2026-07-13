@@ -129,6 +129,11 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
     setView("empty");
   }, [selectedId, remove]);
 
+  const handleToggleArchive = useCallback(async () => {
+    if (!selectedId || !selected) return;
+    await update(selectedId, { archived: !selected.archived });
+  }, [selectedId, selected, update]);
+
   const handleLaunch = useCallback(async () => {
     if (!selectedId) return;
     const result = await launch(selectedId);
@@ -257,6 +262,7 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
               profile={selected}
               onSave={handleUpdate}
               onDelete={handleDelete}
+              onToggleArchive={handleToggleArchive}
               onCancel={() => {
                 if (selected.status === "running") {
                   setView("view");

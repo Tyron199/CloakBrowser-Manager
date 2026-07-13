@@ -1,4 +1,4 @@
-import { Save, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Save, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Profile, ProfileCreateData } from "../lib/api";
 import { COUNTRIES, countryLabel } from "../lib/countries";
@@ -7,6 +7,7 @@ interface ProfileFormProps {
   profile: Profile | null; // null = create mode
   onSave: (data: ProfileCreateData) => Promise<void>;
   onDelete?: () => Promise<void>;
+  onToggleArchive?: () => Promise<void>;
   onCancel: () => void;
 }
 
@@ -53,7 +54,7 @@ const GPU_PRESETS: Record<string, { vendor: string; renderer: string }> = {
   },
 };
 
-export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileFormProps) {
+export function ProfileForm({ profile, onSave, onDelete, onToggleArchive, onCancel }: ProfileFormProps) {
   const isEdit = profile !== null;
 
   const [form, setForm] = useState<ProfileCreateData>({
@@ -68,12 +69,14 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
     geoip: false,
     clipboard_sync: true,
     auto_launch: false,
+    archived: false,
     launch_args: [],
     tags: [],
   });
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [tagColor, setTagColor] = useState<string | null>("#6366f1");
   const [launchArgInput, setLaunchArgInput] = useState("");
@@ -100,13 +103,14 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
         geoip: profile.geoip,
         clipboard_sync: profile.clipboard_sync,
         auto_launch: profile.auto_launch,
+        archived: profile.archived,
         color_scheme: profile.color_scheme,
         launch_args: profile.launch_args ?? [],
         notes: profile.notes,
         tags: profile.tags ?? [],
       });
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.archived]);
 
   const set = <K extends keyof ProfileCreateData>(key: K, value: ProfileCreateData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -131,6 +135,16 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
       await onDelete();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleToggleArchive = async () => {
+    if (!onToggleArchive) return;
+    setArchiving(true);
+    try {
+      await onToggleArchive();
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -181,6 +195,34 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
           <h2 className="text-lg font-semibold">
             {isEdit ? "Edit Profile" : "New Profile"}
           </h2>
+          {isEdit && profile?.archived && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-4 text-gray-400 inline-flex items-center gap-1">
+              <Archive className="h-2.5 w-2.5" />
+              Archived
+            </span>
+          )}
+          {isEdit && onToggleArchive && (
+            <button
+              type="button"
+              onClick={handleToggleArchive}
+              disabled={archiving}
+              className="btn-secondary flex items-center gap-1.5"
+              title={profile?.archived ? "Restore to sidebar" : "Hide from sidebar"}
+            >
+              {profile?.archived ? (
+                <ArchiveRestore className="h-3.5 w-3.5" />
+              ) : (
+                <Archive className="h-3.5 w-3.5" />
+              )}
+              <span>
+                {archiving
+                  ? "…"
+                  : profile?.archived
+                    ? "Unarchive"
+                    : "Archive"}
+              </span>
+            </button>
+          )}
           {isEdit && onDelete && (
             <button
               type="button"

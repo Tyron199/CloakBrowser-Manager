@@ -77,6 +77,24 @@ def test_update_profile_country(app_client: TestClient):
     assert cleared.json()["country"] is None
 
 
+def test_archive_profile(app_client: TestClient):
+    create = app_client.post("/api/profiles", json={"name": "Keep"})
+    pid = create.json()["id"]
+    assert create.json()["archived"] is False
+
+    archived = app_client.put(f"/api/profiles/{pid}", json={"archived": True})
+    assert archived.status_code == 200
+    assert archived.json()["archived"] is True
+
+    # Still listable via API (UI filters client-side)
+    listed = app_client.get("/api/profiles").json()
+    assert any(p["id"] == pid and p["archived"] for p in listed)
+
+    restored = app_client.put(f"/api/profiles/{pid}", json={"archived": False})
+    assert restored.status_code == 200
+    assert restored.json()["archived"] is False
+
+
 def test_get_profile(app_client: TestClient):
     create = app_client.post("/api/profiles", json={"name": "Get Me"})
     pid = create.json()["id"]
