@@ -10,6 +10,7 @@ export interface Profile {
   timezone: string | null;
   locale: string | null;
   platform: string;
+  country: string | null;
   user_agent: string | null;
   screen_width: number;
   screen_height: number;
@@ -41,6 +42,7 @@ export interface ProfileCreateData {
   timezone?: string | null;
   locale?: string | null;
   platform?: string;
+  country?: string | null;
   user_agent?: string | null;
   screen_width?: number;
   screen_height?: number;

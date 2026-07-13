@@ -1,6 +1,7 @@
 import { Plus, Search, Monitor, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Profile } from "../lib/api";
+import { countryFlag, countryName } from "../lib/countries";
 import { StatusIndicator } from "./StatusIndicator";
 
 interface ProfileListProps {
@@ -19,10 +20,31 @@ export function ProfileList({
   onOpenSharedFiles,
 }: ProfileListProps) {
   const [search, setSearch] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
 
-  const filtered = profiles.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  // Only countries actually assigned to profiles — keeps the filter clean
+  const usedCountries = useMemo(() => {
+    const codes = new Set<string>();
+    for (const p of profiles) {
+      if (p.country) codes.add(p.country);
+    }
+    return Array.from(codes).sort((a, b) =>
+      countryName(a).localeCompare(countryName(b)),
+    );
+  }, [profiles]);
+
+  // Clear filter if the selected country is no longer in use
+  useEffect(() => {
+    if (countryFilter && !usedCountries.includes(countryFilter)) {
+      setCountryFilter("");
+    }
+  }, [countryFilter, usedCountries]);
+
+  const filtered = profiles.filter((p) => {
+    if (countryFilter && p.country !== countryFilter) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   const runningCount = profiles.filter((p) => p.status === "running").length;
 
@@ -40,7 +62,7 @@ export function ProfileList({
           </div>
         )}
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-2">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
           <input
             type="text"
@@ -50,6 +72,22 @@ export function ProfileList({
             className="input pl-8 py-1.5 text-xs"
           />
         </div>
+        {/* Country filter — only shown when at least one profile has a country */}
+        {usedCountries.length > 0 && (
+          <select
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+            className="input py-1.5 text-xs"
+            title="Filter by country"
+          >
+            <option value="">All countries</option>
+            {usedCountries.map((code) => (
+              <option key={code} value={code}>
+                {countryFlag(code)} {countryName(code)}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Profile list */}
@@ -71,7 +109,16 @@ export function ProfileList({
           >
             <div className="flex items-center gap-2">
               <StatusIndicator status={profile.status} />
-              <span className="text-sm font-medium truncate">{profile.name}</span>
+              <span className="text-sm font-medium truncate flex-1">{profile.name}</span>
+              {profile.country && (
+                <span
+                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-surface-4 text-gray-300 inline-flex items-center gap-1"
+                  title={countryName(profile.country)}
+                >
+                  <span className="leading-none">{countryFlag(profile.country)}</span>
+                  <span>{profile.country}</span>
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1 ml-4">
               <span className="text-xs text-gray-500 capitalize">{profile.platform}</span>

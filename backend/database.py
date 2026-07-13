@@ -39,6 +39,7 @@ def init_db():
                 timezone TEXT,
                 locale TEXT,
                 platform TEXT DEFAULT 'windows',
+                country TEXT,
                 user_agent TEXT,
                 screen_width INTEGER DEFAULT 1920,
                 screen_height INTEGER DEFAULT 1080,
@@ -78,6 +79,9 @@ def init_db():
         if "auto_launch" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN auto_launch BOOLEAN DEFAULT 0")
             conn.commit()
+        if "country" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN country TEXT")
+            conn.commit()
 
 
 def _now() -> str:
@@ -98,18 +102,19 @@ def create_profile(
     with get_db() as conn:
         conn.execute(
             """INSERT INTO profiles (
-                id, name, fingerprint_seed, proxy, timezone, locale, platform,
+                id, name, fingerprint_seed, proxy, timezone, locale, platform, country,
                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                 hardware_concurrency, humanize, human_preset, headless, geoip,
                 clipboard_sync, auto_launch, color_scheme, launch_args, notes,
                 user_data_dir, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 profile_id, name, seed,
                 fields.get("proxy"),
                 fields.get("timezone"),
                 fields.get("locale"),
                 fields.get("platform", "windows"),
+                fields.get("country"),
                 fields.get("user_agent"),
                 fields.get("screen_width", 1920),
                 fields.get("screen_height", 1080),
@@ -184,7 +189,7 @@ def update_profile(profile_id: str, **fields: Any) -> dict[str, Any] | None:
         fields["launch_args"] = json.dumps(fields["launch_args"] or [])
 
     for col in (
-        "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform",
+        "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform", "country",
         "user_agent", "screen_width", "screen_height", "gpu_vendor", "gpu_renderer",
         "hardware_concurrency", "humanize", "human_preset", "headless", "geoip",
         "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes",

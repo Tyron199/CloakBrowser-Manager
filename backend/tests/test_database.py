@@ -95,7 +95,7 @@ def test_create_profile_with_tags(tmp_db: Path):
     assert tag_names == {"work", "dev"}
 
 
-def test_create_profile_defaults(tmp_db: Path):
+def test_profile_create_defaults(tmp_db: Path):
     p = db.create_profile("Defaults")
     assert p["platform"] == "windows"
     assert p["screen_width"] == 1920
@@ -105,6 +105,20 @@ def test_create_profile_defaults(tmp_db: Path):
     assert p["geoip"] == 0
     assert p["human_preset"] == "default"
     assert p["launch_args"] == []
+    assert p["country"] is None
+
+
+def test_create_profile_with_country(tmp_db: Path):
+    p = db.create_profile("UK Profile", country="GB")
+    assert p["country"] == "GB"
+
+
+def test_update_profile_country(tmp_db: Path):
+    p = db.create_profile("Geo")
+    updated = db.update_profile(p["id"], country="DE")
+    assert updated["country"] == "DE"
+    cleared = db.update_profile(p["id"], country=None)
+    assert cleared["country"] is None
 
 
 def test_create_profile_with_launch_args(tmp_db: Path):
