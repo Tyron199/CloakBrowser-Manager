@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Lock, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Lock, PanelLeftClose, PanelLeft, Settings, Monitor } from "lucide-react";
 import { useProfiles } from "./hooks/useProfiles";
 import { api, setOnUnauthorized, type ProfileCreateData } from "./lib/api";
 import { ProfileList } from "./components/ProfileList";
@@ -186,6 +186,16 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {selected && selected.status === "running" && (
+              <button
+                onClick={() => setView(view === "edit" ? "view" : "edit")}
+                className="btn-secondary flex items-center gap-1.5"
+                title={view === "edit" ? "Show running browser" : "Edit profile settings"}
+              >
+                {view === "edit" ? <Monitor className="h-3.5 w-3.5" /> : <Settings className="h-3.5 w-3.5" />}
+                <span>{view === "edit" ? "View Browser" : "Settings"}</span>
+              </button>
+            )}
             {selected && (
               <LaunchButton
                 status={selected.status}
@@ -236,8 +246,12 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
               onSave={handleUpdate}
               onDelete={handleDelete}
               onCancel={() => {
-                setSelectedId(null);
-                setView("empty");
+                if (selected.status === "running") {
+                  setView("view");
+                } else {
+                  setSelectedId(null);
+                  setView("empty");
+                }
               }}
             />
           )}
