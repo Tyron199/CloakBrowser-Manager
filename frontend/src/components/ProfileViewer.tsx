@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ClipboardCopy, Code2, Maximize2, Minimize2 } from "lucide-react";
+import { ClipboardCopy, Code2, Maximize2, Minimize2, Settings } from "lucide-react";
 import { api } from "../lib/api";
 
 interface ProfileViewerProps {
@@ -7,12 +7,13 @@ interface ProfileViewerProps {
   cdpUrl: string | null;
   clipboardSync: boolean;
   onDisconnect: () => void;
+  onOpenSettings?: () => void;
 }
 
 // X11 keysym for V key (Ctrl is already held in VNC by the time we intercept)
 const XK_v = 0x0076;
 
-export function ProfileViewer({ profileId, cdpUrl, clipboardSync: initialClipboardSync, onDisconnect }: ProfileViewerProps) {
+export function ProfileViewer({ profileId, cdpUrl, clipboardSync: initialClipboardSync, onDisconnect, onOpenSettings }: ProfileViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<any>(null);
   const [connected, setConnected] = useState(false);
@@ -250,6 +251,15 @@ export function ProfileViewer({ profileId, cdpUrl, clipboardSync: initialClipboa
           </span>
         </div>
         <div className="flex items-center gap-1">
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="text-gray-500 hover:text-gray-300 p-1"
+              title="Edit profile settings"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+          )}
           {cdpUrl && (
             <button
               onClick={() => {

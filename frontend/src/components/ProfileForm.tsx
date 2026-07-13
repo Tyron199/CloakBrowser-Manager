@@ -7,6 +7,9 @@ interface ProfileFormProps {
   onSave: (data: ProfileCreateData) => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel: () => void;
+  /** When true, profile is running — show restart notice for launch settings */
+  isRunning?: boolean;
+  cancelLabel?: string;
 }
 
 const RESOLUTION_PRESETS: Record<string, { width: number; height: number }> = {
@@ -52,7 +55,14 @@ const GPU_PRESETS: Record<string, { vendor: string; renderer: string }> = {
   },
 };
 
-export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileFormProps) {
+export function ProfileForm({
+  profile,
+  onSave,
+  onDelete,
+  onCancel,
+  isRunning = false,
+  cancelLabel,
+}: ProfileFormProps) {
   const isEdit = profile !== null;
 
   const [form, setForm] = useState<ProfileCreateData>({
@@ -122,7 +132,10 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    if (!confirm("Delete this profile? Browser data will be permanently removed.")) return;
+    const message = isRunning
+      ? "Delete this profile? The running browser will be stopped and all browser data will be permanently removed."
+      : "Delete this profile? Browser data will be permanently removed.";
+    if (!confirm(message)) return;
     setDeleting(true);
     try {
       await onDelete();
@@ -192,7 +205,7 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={onCancel} className="btn-secondary">
-            Cancel
+            {cancelLabel ?? "Cancel"}
           </button>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-1.5">
             <Save className="h-3.5 w-3.5" />
@@ -200,6 +213,12 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
           </button>
         </div>
       </div>
+
+      {isRunning && (
+        <div className="mb-5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200/90">
+          Profile is running. Name, tags, and notes apply immediately. Proxy, fingerprint, and other launch settings take effect after you stop and relaunch.
+        </div>
+      )}
 
       <div className="space-y-5">
         {/* Basic */}

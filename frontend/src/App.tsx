@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Lock, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Lock, PanelLeftClose, PanelLeft, Settings } from "lucide-react";
 import { useProfiles } from "./hooks/useProfiles";
 import { api, setOnUnauthorized, type ProfileCreateData } from "./lib/api";
 import { ProfileList } from "./components/ProfileList";
@@ -93,17 +93,20 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<View>("empty");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selected = profiles.find((p) => p.id === selectedId) ?? null;
 
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
+    setSettingsOpen(false);
     const profile = profiles.find((p) => p.id === id);
     setView(profile?.status === "running" ? "view" : "edit");
   }, [profiles]);
 
   const handleNew = useCallback(() => {
     setSelectedId(null);
+    setSettingsOpen(false);
     setView("create");
   }, []);
 
@@ -124,24 +127,47 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
     if (!selectedId) return;
     await remove(selectedId);
     setSelectedId(null);
+    setSettingsOpen(false);
     setView("empty");
   }, [selectedId, remove]);
 
   const handleLaunch = useCallback(async () => {
     if (!selectedId) return;
     const result = await launch(selectedId);
-    if (result) setView("view");
+    if (result) {
+      setSettingsOpen(false);
+      setView("view");
+    }
   }, [selectedId, launch]);
 
   const handleStop = useCallback(async () => {
     if (!selectedId) return;
     await stop(selectedId);
+    setSettingsOpen(false);
     setView("edit");
   }, [selectedId, stop]);
 
   const handleVncDisconnect = useCallback(() => {
+    setSettingsOpen(false);
     setView("edit");
   }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsOpen(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSettingsOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [settingsOpen]);
 
   if (loading) {
     return (
@@ -186,6 +212,15 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {selected && view === "view" && (
+              <button
+                onClick={() => setSettingsOpen((open) => !open)}
+                className={`p-1.5 rounded-md ${settingsOpen ? "bg-surface-3 text-gray-200" : "text-gray-500 hover:text-gray-300"}`}
+                title={settingsOpen ? "Back to browser" : "Edit profile settings"}
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+            )}
             {selected && (
               <LaunchButton
                 status={selected.status}
@@ -213,7 +248,7 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex-1 overflow-y-auto overscroll-contain relative min-h-0">
           {view === "empty" && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -243,13 +278,28 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
           )}
 
           {view === "view" && selected && selected.status === "running" && (
-            <ProfileViewer
-              key={selected.id}
-              profileId={selected.id}
-              cdpUrl={selected.cdp_url}
-              clipboardSync={selected.clipboard_sync}
-              onDisconnect={handleVncDisconnect}
-            />
+            <div className="absolute inset-0 flex flex-col">
+              <ProfileViewer
+                key={selected.id}
+                profileId={selected.id}
+                cdpUrl={selected.cdp_url}
+                clipboardSync={selected.clipboard_sync}
+                onDisconnect={handleVncDisconnect}
+                onOpenSettings={handleOpenSettings}
+              />
+              {settingsOpen && (
+                <div className="absolute inset-0 z-20 bg-surface-0 overflow-y-auto overscroll-contain">
+                  <ProfileForm
+                    profile={selected}
+                    onSave={handleUpdate}
+                    onDelete={handleDelete}
+                    onCancel={handleCloseSettings}
+                    isRunning
+                    cancelLabel="Back to browser"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
