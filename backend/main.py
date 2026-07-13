@@ -18,13 +18,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import starlette.requests
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import database as db
+from . import shared_files
 from .browser_manager import BrowserManager
 from .models import (
     ClipboardRequest,
@@ -34,6 +35,8 @@ from .models import (
     ProfileResponse,
     ProfileStatusResponse,
     ProfileUpdate,
+    SharedFileResponse,
+    SharedFilesListResponse,
     StatusResponse,
     TagResponse,
 )
@@ -375,6 +378,7 @@ def _filter_rfb_client_messages(data: bytes) -> bytes:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
+    shared_files.ensure_shared_dir()
     await browser_mgr.cleanup_stale()
     browser_mgr._auto_launch_task = asyncio.create_task(browser_mgr.auto_launch_all())
     logger.info("CloakBrowser Manager started")
@@ -1014,6 +1018,76 @@ async def cdp_page_proxy(websocket: WebSocket, profile_id: str, path: str):
 
     target_url = f"ws://127.0.0.1:{running.cdp_port}/devtools/{path}"
     await _proxy_cdp_websocket(websocket, target_url, f"CDP page proxy [{profile_id}]")
+
+
+# ── Shared Files (Dropbox-style upload for browser file pickers) ──────────────
+
+
+@app.get("/api/files", response_model=SharedFilesListResponse)
+async def list_shared_files():
+    """List files in /data/shared — accessible from browsers inside the container."""
+    root = shared_files.ensure_shared_dir()
+    files = [SharedFileResponse(**f) for f in shared_files.list_files()]
+    return SharedFilesListResponse(files=files, directory=str(root))
+
+
+@app.post("/api/files", response_model=SharedFileResponse, status_code=201)
+async def upload_shared_file(
+    file: UploadFile = File(...),
+    overwrite: bool = Query(False),
+):
+    """Upload a file into /data/shared."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+
+    # Stream into memory with a size cap (avoids writing partial oversized files)
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > shared_files.MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds maximum size of {shared_files.MAX_FILE_SIZE} bytes",
+            )
+        chunks.append(chunk)
+    data = b"".join(chunks)
+
+    try:
+        result = shared_files.save_file(file.filename, data, overwrite=overwrite)
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return SharedFileResponse(**result)
+
+
+@app.get("/api/files/{filename}")
+async def download_shared_file(filename: str):
+    """Download a file from /data/shared."""
+    try:
+        path = shared_files.resolve_path(filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, filename=path.name)
+
+
+@app.delete("/api/files/{filename}")
+async def delete_shared_file(filename: str):
+    """Delete a file from /data/shared."""
+    try:
+        shared_files.delete_file(filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"ok": True}
 
 
 # ── Static Frontend ───────────────────────────────────────────────────────────

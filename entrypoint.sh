@@ -3,6 +3,7 @@ set -e
 
 # Initialize data directories
 mkdir -p /data/profiles
+mkdir -p /data/shared
 
 # Kill stale processes from previous container runs
 pkill -f 'Xvnc :[0-9]' 2>/dev/null || true

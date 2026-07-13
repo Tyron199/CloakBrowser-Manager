@@ -60,6 +60,7 @@ Each CloakBrowser profile generates a completely different device identity. To t
 - **Per-profile settings** — fingerprint seed, proxy, timezone, locale, user agent, screen size, platform
 - **One-click launch/stop** — each profile runs as an isolated CloakBrowser instance
 - **Session persistence** — cookies, localStorage, and cache survive browser restarts
+- **Shared files** — upload files from the Manager UI into `/data/shared`; pick them from any browser's file dialog
 - **In-browser viewing** — interact with launched browsers via noVNC, directly in the web GUI
 - **Playwright/Puppeteer API** — connect to any running profile programmatically via CDP, while still watching it live in the browser
 - **Optional authentication** — protect the web UI and API with a single token, or run wide open locally
