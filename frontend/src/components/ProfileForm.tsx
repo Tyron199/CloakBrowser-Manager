@@ -1,6 +1,7 @@
 import { Save, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Profile, ProfileCreateData } from "../lib/api";
+import { COUNTRIES, countryLabel } from "../lib/countries";
 
 interface ProfileFormProps {
   profile: Profile | null; // null = create mode
@@ -58,6 +59,7 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
   const [form, setForm] = useState<ProfileCreateData>({
     name: "",
     platform: "windows",
+    country: null,
     screen_width: 1920,
     screen_height: 1080,
     humanize: false,
@@ -85,6 +87,7 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
         timezone: profile.timezone,
         locale: profile.locale,
         platform: profile.platform,
+        country: profile.country,
         user_agent: profile.user_agent,
         screen_width: profile.screen_width,
         screen_height: profile.screen_height,
@@ -229,6 +232,21 @@ export function ProfileForm({ profile, onSave, onDelete, onCancel }: ProfileForm
               </select>
             </div>
             <div>
+              <label className="label">Country</label>
+              <select
+                className="input"
+                value={form.country ?? ""}
+                onChange={(e) => set("country", e.target.value || null)}
+              >
+                <option value="">None</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {countryLabel(c.code)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2">
               <label className="label">Fingerprint Seed</label>
               <div className="flex gap-2">
                 <input

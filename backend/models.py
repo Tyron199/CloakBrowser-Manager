@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from .countries import normalize_country
+
 
 class ProfileCreate(BaseModel):
     name: str
@@ -14,6 +16,7 @@ class ProfileCreate(BaseModel):
     timezone: str | None = None  # "America/New_York"
     locale: str | None = None  # "en-US"
     platform: Literal["windows", "macos", "linux"] = "windows"
+    country: str | None = None  # ISO 3166-1 alpha-2, e.g. "US"
     user_agent: str | None = None
     screen_width: int = 1920
     screen_height: int = 1080
@@ -31,6 +34,15 @@ class ProfileCreate(BaseModel):
     notes: str | None = None
     tags: list[TagCreate] | None = None
 
+    @field_validator("country", mode="before")
+    @classmethod
+    def validate_country(cls, v: object) -> str | None:
+        if v is None or v == "":
+            return None
+        if not isinstance(v, str):
+            raise ValueError("country must be a string")
+        return normalize_country(v)
+
 
 class ProfileUpdate(BaseModel):
     name: str | None = None
@@ -39,6 +51,7 @@ class ProfileUpdate(BaseModel):
     timezone: str | None = Field(default=None)
     locale: str | None = Field(default=None)
     platform: Literal["windows", "macos", "linux"] | None = None
+    country: str | None = Field(default=None)
     user_agent: str | None = Field(default=None)
     screen_width: int | None = None
     screen_height: int | None = None
@@ -55,6 +68,15 @@ class ProfileUpdate(BaseModel):
     launch_args: list[str] | None = None
     notes: str | None = Field(default=None)
     tags: list[TagCreate] | None = None
+
+    @field_validator("country", mode="before")
+    @classmethod
+    def validate_country(cls, v: object) -> str | None:
+        if v is None or v == "":
+            return None
+        if not isinstance(v, str):
+            raise ValueError("country must be a string")
+        return normalize_country(v)
 
 
 class TagCreate(BaseModel):
@@ -75,6 +97,7 @@ class ProfileResponse(BaseModel):
     timezone: str | None = None
     locale: str | None = None
     platform: str = "windows"
+    country: str | None = None
     user_agent: str | None = None
     screen_width: int = 1920
     screen_height: int = 1080

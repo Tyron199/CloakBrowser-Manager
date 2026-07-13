@@ -91,6 +91,29 @@ def test_profile_create_invalid_color_scheme():
         ProfileCreate(name="Bad", color_scheme="auto")
 
 
+def test_profile_create_with_country():
+    p = ProfileCreate(name="Geo", country="us")
+    assert p.country == "US"  # normalized uppercase
+
+
+def test_profile_create_country_none():
+    p = ProfileCreate(name="NoGeo", country=None)
+    assert p.country is None
+    p2 = ProfileCreate(name="Empty", country="")
+    assert p2.country is None
+
+
+def test_profile_create_invalid_country():
+    with pytest.raises(ValidationError):
+        ProfileCreate(name="Bad", country="XX")
+
+
+def test_profile_update_country():
+    p = ProfileUpdate(country="de")
+    dumped = p.model_dump(exclude_unset=True)
+    assert dumped == {"country": "DE"}
+
+
 # ── ProfileUpdate ────────────────────────────────────────────────────────────
 
 

@@ -55,6 +55,28 @@ def test_create_profile_invalid_platform(app_client: TestClient):
     assert resp.status_code == 422
 
 
+def test_create_profile_with_country(app_client: TestClient):
+    resp = app_client.post("/api/profiles", json={"name": "US Seller", "country": "us"})
+    assert resp.status_code == 201
+    assert resp.json()["country"] == "US"
+
+
+def test_create_profile_invalid_country(app_client: TestClient):
+    resp = app_client.post("/api/profiles", json={"name": "Bad", "country": "XX"})
+    assert resp.status_code == 422
+
+
+def test_update_profile_country(app_client: TestClient):
+    create = app_client.post("/api/profiles", json={"name": "Geo"})
+    pid = create.json()["id"]
+    resp = app_client.put(f"/api/profiles/{pid}", json={"country": "GB"})
+    assert resp.status_code == 200
+    assert resp.json()["country"] == "GB"
+    cleared = app_client.put(f"/api/profiles/{pid}", json={"country": None})
+    assert cleared.status_code == 200
+    assert cleared.json()["country"] is None
+
+
 def test_get_profile(app_client: TestClient):
     create = app_client.post("/api/profiles", json={"name": "Get Me"})
     pid = create.json()["id"]
