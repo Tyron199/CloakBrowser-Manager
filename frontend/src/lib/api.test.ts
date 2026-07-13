@@ -139,3 +139,50 @@ describe("error handling", () => {
     await expect(api.getStatus()).rejects.toThrow("Internal Server Error");
   });
 });
+
+// ── shared files ────────────────────────────────────────────────────────────
+
+describe("api.listFiles", () => {
+  it("returns files and directory", async () => {
+    const payload = { files: [], directory: "/data/shared" };
+    mockFetch.mockResolvedValueOnce(jsonResponse(payload));
+    const result = await api.listFiles();
+    expect(result).toEqual(payload);
+    expect(mockFetch).toHaveBeenCalledWith("/api/files", {
+      headers: { "Content-Type": "application/json" },
+    });
+  });
+});
+
+describe("api.uploadFile", () => {
+  it("posts FormData without JSON content-type", async () => {
+    const file = new File(["hello"], "hello.txt", { type: "text/plain" });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ name: "hello.txt", size: 5, modified_at: "now", path: "/data/shared/hello.txt" }),
+    );
+    await api.uploadFile(file);
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe("/api/files");
+    expect(options.method).toBe("POST");
+    expect(options.body).toBeInstanceOf(FormData);
+  });
+
+  it("appends overwrite query when requested", async () => {
+    const file = new File(["x"], "x.txt", { type: "text/plain" });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ name: "x.txt", size: 1, modified_at: "now", path: "/data/shared/x.txt" }),
+    );
+    await api.uploadFile(file, true);
+    expect(mockFetch.mock.calls[0][0]).toBe("/api/files?overwrite=true");
+  });
+});
+
+describe("api.deleteFile", () => {
+  it("URL-encodes the filename", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+    await api.deleteFile("my doc.txt");
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe("/api/files/my%20doc.txt");
+    expect(options.method).toBe("DELETE");
+  });
+});

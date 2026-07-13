@@ -132,3 +132,15 @@ class ClipboardRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     token: str
+
+
+class SharedFileResponse(BaseModel):
+    name: str
+    size: int
+    modified_at: str
+    path: str
+
+
+class SharedFilesListResponse(BaseModel):
+    files: list[SharedFileResponse]
+    directory: str

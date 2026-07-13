@@ -1,4 +1,4 @@
-import { Plus, Search, Monitor } from "lucide-react";
+import { Plus, Search, Monitor, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import type { Profile } from "../lib/api";
 import { StatusIndicator } from "./StatusIndicator";
@@ -8,9 +8,16 @@ interface ProfileListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onOpenSharedFiles: () => void;
 }
 
-export function ProfileList({ profiles, selectedId, onSelect, onNew }: ProfileListProps) {
+export function ProfileList({
+  profiles,
+  selectedId,
+  onSelect,
+  onNew,
+  onOpenSharedFiles,
+}: ProfileListProps) {
   const [search, setSearch] = useState("");
 
   const filtered = profiles.filter((p) =>
@@ -92,11 +99,19 @@ export function ProfileList({ profiles, selectedId, onSelect, onNew }: ProfileLi
         ))}
       </div>
 
-      {/* New profile button */}
-      <div className="p-3 border-t border-border">
+      {/* Actions */}
+      <div className="p-3 border-t border-border space-y-2">
         <button onClick={onNew} className="btn-secondary w-full flex items-center justify-center gap-1.5">
           <Plus className="h-3.5 w-3.5" />
           <span>New Profile</span>
+        </button>
+        <button
+          onClick={onOpenSharedFiles}
+          className="btn-secondary w-full flex items-center justify-center gap-1.5"
+          title="Upload files accessible inside browsers"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          <span>Shared Files</span>
         </button>
       </div>
     </div>

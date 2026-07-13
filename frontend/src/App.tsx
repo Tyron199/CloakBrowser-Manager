@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Lock, PanelLeftClose, PanelLeft, Settings, Monitor } from "lucide-react";
+import { Lock, PanelLeftClose, PanelLeft, Settings, Monitor, FolderOpen } from "lucide-react";
 import { useProfiles } from "./hooks/useProfiles";
 import { api, setOnUnauthorized, type ProfileCreateData } from "./lib/api";
 import { ProfileList } from "./components/ProfileList";
@@ -8,6 +8,7 @@ import { ProfileViewer } from "./components/ProfileViewer";
 import { LaunchButton } from "./components/LaunchButton";
 import { StatusIndicator } from "./components/StatusIndicator";
 import { LoginPage } from "./components/LoginPage";
+import { SharedFilesModal } from "./components/SharedFilesModal";
 
 type AuthState = "checking" | "required" | "ok" | "error";
 type View = "empty" | "create" | "edit" | "view";
@@ -93,6 +94,7 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<View>("empty");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sharedFilesOpen, setSharedFilesOpen] = useState(false);
 
   const selected = profiles.find((p) => p.id === selectedId) ?? null;
 
@@ -161,6 +163,7 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
             selectedId={selectedId}
             onSelect={handleSelect}
             onNew={handleNew}
+            onOpenSharedFiles={() => setSharedFilesOpen(true)}
           />
         </div>
       )}
@@ -177,6 +180,15 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
             >
               {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
             </button>
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSharedFilesOpen(true)}
+                className="text-gray-500 hover:text-gray-300 p-1"
+                title="Shared Files"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </button>
+            )}
             {selected && (
               <div className="flex items-center gap-2">
                 <StatusIndicator status={selected.status} size="md" />
@@ -267,6 +279,10 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
           )}
         </div>
       </div>
+
+      {sharedFilesOpen && (
+        <SharedFilesModal onClose={() => setSharedFilesOpen(false)} />
+      )}
     </div>
   );
 }

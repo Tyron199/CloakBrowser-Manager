@@ -82,6 +82,8 @@ class ApiError extends Error {
   }
 }
 
+export { ApiError };
+
 // Global 401 callback — set by App to trigger login page on auth failure
 let _onUnauthorized: (() => void) | null = null;
 export function setOnUnauthorized(cb: (() => void) | null) {
@@ -155,4 +157,41 @@ export const api = {
 
   getClipboard: (id: string) =>
     request<{ text: string }>(`/api/profiles/${id}/clipboard`),
+
+  listFiles: () =>
+    request<{ files: SharedFile[]; directory: string }>("/api/files"),
+
+  uploadFile: async (file: File, overwrite = false): Promise<SharedFile> => {
+    const form = new FormData();
+    form.append("file", file);
+    const qs = overwrite ? "?overwrite=true" : "";
+    const res = await fetch(`/api/files${qs}`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      if (res.status === 401 && _onUnauthorized) {
+        _onUnauthorized();
+        throw new ApiError(401, "Unauthorized");
+      }
+      const body = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new ApiError(res.status, body.detail || res.statusText);
+    }
+    return res.json();
+  },
+
+  deleteFile: (name: string) =>
+    request<{ ok: boolean }>(`/api/files/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    }),
+
+  downloadFileUrl: (name: string) =>
+    `/api/files/${encodeURIComponent(name)}`,
 };
+
+export interface SharedFile {
+  name: string;
+  size: number;
+  modified_at: string;
+  path: string;
+}
