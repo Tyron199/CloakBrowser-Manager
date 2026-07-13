@@ -1,4 +1,4 @@
-import { Plus, Search, Monitor, FolderOpen } from "lucide-react";
+import { Archive, Plus, Search, Monitor, FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { Profile } from "../lib/api";
 import { countryFlag, countryName } from "../lib/countries";
@@ -21,19 +21,25 @@ export function ProfileList({
 }: ProfileListProps) {
   const [search, setSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
-  // Only countries actually assigned to profiles — keeps the filter clean
+  const archivedCount = useMemo(
+    () => profiles.filter((p) => p.archived).length,
+    [profiles],
+  );
+
+  // Countries from currently visible set (respects show-archived toggle)
   const usedCountries = useMemo(() => {
     const codes = new Set<string>();
     for (const p of profiles) {
+      if (!showArchived && p.archived) continue;
       if (p.country) codes.add(p.country);
     }
     return Array.from(codes).sort((a, b) =>
       countryName(a).localeCompare(countryName(b)),
     );
-  }, [profiles]);
+  }, [profiles, showArchived]);
 
-  // Clear filter if the selected country is no longer in use
   useEffect(() => {
     if (countryFilter && !usedCountries.includes(countryFilter)) {
       setCountryFilter("");
@@ -41,6 +47,7 @@ export function ProfileList({
   }, [countryFilter, usedCountries]);
 
   const filtered = profiles.filter((p) => {
+    if (!showArchived && p.archived) return false;
     if (countryFilter && p.country !== countryFilter) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -72,12 +79,12 @@ export function ProfileList({
             className="input pl-8 py-1.5 text-xs"
           />
         </div>
-        {/* Country filter — only shown when at least one profile has a country */}
+        {/* Country filter — only shown when at least one visible profile has a country */}
         {usedCountries.length > 0 && (
           <select
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
-            className="input py-1.5 text-xs"
+            className="input py-1.5 text-xs mb-2"
             title="Filter by country"
           >
             <option value="">All countries</option>
@@ -88,13 +95,30 @@ export function ProfileList({
             ))}
           </select>
         )}
+        {/* Show archived — only when something is archived */}
+        {archivedCount > 0 && (
+          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="rounded border-border bg-surface-2"
+            />
+            <Archive className="h-3 w-3" />
+            <span>Show archived ({archivedCount})</span>
+          </label>
+        )}
       </div>
 
       {/* Profile list */}
       <div className="flex-1 overflow-y-auto p-2">
         {filtered.length === 0 && (
           <div className="text-center text-gray-500 text-xs py-8">
-            {profiles.length === 0 ? "No profiles yet" : "No matches"}
+            {profiles.length === 0
+              ? "No profiles yet"
+              : archivedCount > 0 && !showArchived
+                ? "No active profiles — enable Show archived"
+                : "No matches"}
           </div>
         )}
         {filtered.map((profile) => (
@@ -105,11 +129,20 @@ export function ProfileList({
               selectedId === profile.id
                 ? "bg-surface-3 border border-border-hover"
                 : "hover:bg-surface-2 border border-transparent"
-            }`}
+            } ${profile.archived ? "opacity-70" : ""}`}
           >
             <div className="flex items-center gap-2">
               <StatusIndicator status={profile.status} />
               <span className="text-sm font-medium truncate flex-1">{profile.name}</span>
+              {profile.archived && (
+                <span
+                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-surface-4 text-gray-500 inline-flex items-center gap-1"
+                  title="Archived"
+                >
+                  <Archive className="h-2.5 w-2.5" />
+                  <span>Archived</span>
+                </span>
+              )}
               {profile.country && (
                 <span
                   className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-surface-4 text-gray-300 inline-flex items-center gap-1"

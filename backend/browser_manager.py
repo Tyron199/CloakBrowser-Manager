@@ -344,7 +344,9 @@ class BrowserManager:
         from . import database as db
 
         profiles = db.list_profiles()
-        auto_profiles = [p for p in profiles if p.get("auto_launch")]
+        auto_profiles = [
+            p for p in profiles if p.get("auto_launch") and not p.get("archived")
+        ]
         if not auto_profiles:
             logger.info("No profiles configured for auto-launch")
             return

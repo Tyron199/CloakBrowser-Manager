@@ -114,6 +114,17 @@ def test_profile_update_country():
     assert dumped == {"country": "DE"}
 
 
+def test_profile_create_archived_default():
+    p = ProfileCreate(name="Fresh")
+    assert p.archived is False
+
+
+def test_profile_update_archived():
+    p = ProfileUpdate(archived=True)
+    dumped = p.model_dump(exclude_unset=True)
+    assert dumped == {"archived": True}
+
+
 # ── ProfileUpdate ────────────────────────────────────────────────────────────
 
 

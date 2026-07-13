@@ -23,6 +23,7 @@ export interface Profile {
   geoip: boolean;
   clipboard_sync: boolean;
   auto_launch: boolean;
+  archived: boolean;
   color_scheme: string | null;
   launch_args: string[];
   notes: string | null;
@@ -55,6 +56,7 @@ export interface ProfileCreateData {
   geoip?: boolean;
   clipboard_sync?: boolean;
   auto_launch?: boolean;
+  archived?: boolean;
   color_scheme?: string | null;
   launch_args?: string[];
   notes?: string | null;

@@ -52,6 +52,7 @@ def init_db():
                 geoip BOOLEAN DEFAULT 0,
                 clipboard_sync BOOLEAN DEFAULT 1,
                 auto_launch BOOLEAN DEFAULT 0,
+                archived BOOLEAN DEFAULT 0,
                 color_scheme TEXT,
                 notes TEXT,
                 user_data_dir TEXT NOT NULL,
@@ -82,6 +83,9 @@ def init_db():
         if "country" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN country TEXT")
             conn.commit()
+        if "archived" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN archived BOOLEAN DEFAULT 0")
+            conn.commit()
 
 
 def _now() -> str:
@@ -105,9 +109,9 @@ def create_profile(
                 id, name, fingerprint_seed, proxy, timezone, locale, platform, country,
                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                 hardware_concurrency, humanize, human_preset, headless, geoip,
-                clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                clipboard_sync, auto_launch, archived, color_scheme, launch_args, notes,
                 user_data_dir, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 profile_id, name, seed,
                 fields.get("proxy"),
@@ -127,6 +131,7 @@ def create_profile(
                 fields.get("geoip", False),
                 fields.get("clipboard_sync", True),
                 fields.get("auto_launch", False),
+                fields.get("archived", False),
                 fields.get("color_scheme"),
                 json.dumps(fields.get("launch_args") or []),
                 fields.get("notes"),
@@ -150,6 +155,7 @@ def get_profile(profile_id: str) -> dict[str, Any] | None:
             return None
         profile = dict(row)
         profile["launch_args"] = json.loads(profile.get("launch_args") or "[]")
+        profile["archived"] = bool(profile.get("archived"))
         tags = conn.execute(
             "SELECT tag, color FROM profile_tags WHERE profile_id = ?",
             (profile_id,),
@@ -165,6 +171,7 @@ def list_profiles() -> list[dict[str, Any]]:
         for row in rows:
             profile = dict(row)
             profile["launch_args"] = json.loads(profile.get("launch_args") or "[]")
+            profile["archived"] = bool(profile.get("archived"))
             tags = conn.execute(
                 "SELECT tag, color FROM profile_tags WHERE profile_id = ?",
                 (profile["id"],),
@@ -192,7 +199,7 @@ def update_profile(profile_id: str, **fields: Any) -> dict[str, Any] | None:
         "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform", "country",
         "user_agent", "screen_width", "screen_height", "gpu_vendor", "gpu_renderer",
         "hardware_concurrency", "humanize", "human_preset", "headless", "geoip",
-        "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes",
+        "clipboard_sync", "auto_launch", "archived", "color_scheme", "launch_args", "notes",
     ):
         if col in fields:
             update_cols.append(f"{col} = ?")

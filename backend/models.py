@@ -29,6 +29,7 @@ class ProfileCreate(BaseModel):
     geoip: bool = False
     clipboard_sync: bool = True
     auto_launch: bool = False
+    archived: bool = False
     color_scheme: Literal["light", "dark", "no-preference"] | None = None
     launch_args: list[str] = Field(default_factory=list)
     notes: str | None = None
@@ -64,6 +65,7 @@ class ProfileUpdate(BaseModel):
     geoip: bool | None = None
     clipboard_sync: bool | None = None
     auto_launch: bool | None = None
+    archived: bool | None = None
     color_scheme: Literal["light", "dark", "no-preference"] | None = Field(default=None)
     launch_args: list[str] | None = None
     notes: str | None = Field(default=None)
@@ -110,11 +112,17 @@ class ProfileResponse(BaseModel):
     geoip: bool = False
     clipboard_sync: bool = True
     auto_launch: bool = False
+    archived: bool = False
 
     @field_validator("clipboard_sync", mode="before")
     @classmethod
     def coerce_clipboard_sync(cls, v: object) -> bool:
         return v if v is not None else True
+
+    @field_validator("archived", mode="before")
+    @classmethod
+    def coerce_archived(cls, v: object) -> bool:
+        return bool(v) if v is not None else False
 
     color_scheme: str | None = None
     launch_args: list[str] = []

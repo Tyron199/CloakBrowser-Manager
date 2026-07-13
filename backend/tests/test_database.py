@@ -106,6 +106,7 @@ def test_profile_create_defaults(tmp_db: Path):
     assert p["human_preset"] == "default"
     assert p["launch_args"] == []
     assert p["country"] is None
+    assert p["archived"] is False
 
 
 def test_create_profile_with_country(tmp_db: Path):
@@ -119,6 +120,15 @@ def test_update_profile_country(tmp_db: Path):
     assert updated["country"] == "DE"
     cleared = db.update_profile(p["id"], country=None)
     assert cleared["country"] is None
+
+
+def test_archive_profile(tmp_db: Path):
+    p = db.create_profile("Old")
+    assert p["archived"] is False
+    archived = db.update_profile(p["id"], archived=True)
+    assert archived["archived"] is True
+    restored = db.update_profile(p["id"], archived=False)
+    assert restored["archived"] is False
 
 
 def test_create_profile_with_launch_args(tmp_db: Path):
